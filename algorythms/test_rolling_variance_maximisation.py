@@ -9,10 +9,10 @@ from processing.utils import csp
 from graphs.topoplots import plot_topomaps
 from graphs.power import welsh_comparison
 from graphs.time_series import plot_time_series
-from processing.artifacts import eye_cleaner
+# from processing.artifacts import eye_cleaner
 
 
-def test_rolling_variance_maximisation(df, fs, channels, min_frequency=None, max_frequency=None,
+def test_rolling_variance_maximisation(df, fs, channels, considered_protocols, min_frequency=None, max_frequency=None,
                                        order=None, steps=None):
     """
     test_rolling_variance_maximisation(df, channels, n_channels=None, min_frequency=None, max_frequency=None,
@@ -115,8 +115,8 @@ def test_rolling_variance_maximisation(df, fs, channels, min_frequency=None, max
 
         # print(values_list_sampled)
 
-        real = df_filterd_copy[df_filterd_copy['block_name'] == "Open"][channels]  # real data
-        mock = df_filterd_copy[df_filterd_copy['block_name'] == "Closed"][channels]  # mock data
+        real = df_filterd_copy[df_filterd_copy['block_name'] == considered_protocols[0]][channels]  # real data
+        mock = df_filterd_copy[df_filterd_copy['block_name'] == considered_protocols[1]][channels]  # mock data
         # real["P4"][:1000].plot()
         # mock["P4"][:1000].plot()
 
@@ -156,6 +156,7 @@ def test_rolling_variance_maximisation(df, fs, channels, min_frequency=None, max
 
 if __name__ == "__main__":
 
+    import os
     import pandas as pd
     import matplotlib.pyplot as plt
     from data import parse_channels_locations_from_mat
@@ -165,9 +166,10 @@ if __name__ == "__main__":
 
     # Prepossessing
 
-    considered_protocols = ['Open', 'Closed']
+    considered_protocols = ['Closed', 'Baseline']
 
-    df, fs, channels = load_data("/Users/basilminkov/Desktop/test/VasyaTest1_04-10_17-50-12/experiment_data.h5")
+    save_path = "/Users/basilminkov/Scripts/python3/Neuroimaging/results/eye_test/"
+    df, fs, channels = load_data("/Users/basilminkov/Neuroscience/Data/discrete_feedback/{}/experiment_data.h5".format('df_0_05-09_12-01-47'))
 
     df = pd.concat([df.loc[df['block_name'] == considered_protocols[0]],
                     df.loc[df['block_name'] == considered_protocols[1]]])
@@ -185,14 +187,14 @@ if __name__ == "__main__":
 
     # Delete eyes with ICA
 
-    channels_mu = ['Fp1', 'Fp2']
-    clear_eeg, n_channels, ch_names_wo_eog, mask_ch_idx = eye_cleaner(df[channels_in_list].as_matrix().T, channels_in_list, fs, channels_mu)
+    # channels_mu = ['Fp1', 'Fp2']
+    # clear_eeg, n_channels, ch_names_wo_eog, mask_ch_idx = eye_cleaner(df[channels_in_list].as_matrix().T, channels_in_list, fs, channels_mu)
 
     # plt.subplot(211)
     # plt.plot(df[channels_in_list[0:5]][0:1000])
     # plt.ylim([-0.0002, 0.0002])
 
-    df[channels_in_list] = pd.DataFrame(clear_eeg.T, columns=channels_in_list)
+    # df[channels_in_list] = pd.DataFrame(clear_eeg.T, columns=channels_in_list)
 
     # plt.subplot(212)
     # plt.plot(df[channels_in_list[0:5]][0:1000])
@@ -201,7 +203,7 @@ if __name__ == "__main__":
 
     # Test
 
-    p_value, p_value_rightsided, p_value_leftsided, vectors_list, values_list, frequencies = test_rolling_variance_maximisation(df, fs, channels_in_list)
+    p_value, p_value_rightsided, p_value_leftsided, vectors_list, values_list, frequencies = test_rolling_variance_maximisation(df, fs, channels_in_list, considered_protocols=considered_protocols)
 
     # Save data
 
@@ -222,6 +224,9 @@ if __name__ == "__main__":
             frequencies,
             ch2,
             channels_in_list]
+
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
     for i in range(len(vars)):
         np.save("/Users/basilminkov/Scripts/python3/Neuroimaging/results/eye_test/{}".format(names[i]), vars[i])
