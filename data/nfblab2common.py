@@ -1,7 +1,7 @@
+import os
 import mne
 import numpy as np
 import pandas as pd
-import pickle as p
 from sklearn import preprocessing
 
 
@@ -65,13 +65,14 @@ def save_data_and_events_as_fif(df, name, fs, channels, montage_kind="standard_1
 
     # save event names
     with open("{}-names.txt".format(name), "w") as file:
-        file.write(str(event_dict.keys()))
-        file.write(str(event_dict.values()))
+        file.write("Event, Number\n")
+        for name in event_dict:
+            file.write("{}, {}\n".format(name, event_dict[name]))
         file.close()
 
 
 if __name__ == "__main__":
-    import os
+
     from data.load_results import load_data
 
     load_path = "/Users/basilminkov/Neuroscience/Data/discrete_feedback"

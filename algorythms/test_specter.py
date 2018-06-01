@@ -31,11 +31,12 @@ sub = [
 load_path = "/Users/basilminkov/Neuroscience/Data/discrete_feedback/{}/experiment_data.h5"
 channels_path = "/Users/basilminkov/Scripts/python3/Neuroimaging/static/chanlocs_mod.mat"
 
-considered_protocols = ['Real', 'Mock']
+considered_protocols = ['Closed', 'Baseline']
 
 real_list = []
 mock_list = []
 
+# for i in range(len(sub)):
 for i in range(1):
 
     df, fs, channels = load_data(load_path.format(sub[i]))
@@ -56,8 +57,8 @@ for i in range(1):
     # # F, Pxx_2 = signal.welch(x=df2, fs=fs)
     # real_list.append(Pxx_1)
     # mock_list.append(Pxx_2)
-    #
-    print(len(real_list))
+
+    # print(len(real_list))
     # del df, df1, df2, Pxx_1, Pxx_2
 
 # real_mx = np.stack(real_list, axis=2)
@@ -74,18 +75,21 @@ for i in range(1):
 #         s, ttest_mx[i, j] = stats.ttest_ind(real_mx[i, j, :], mock_mx[i, j, :])
 #         s, mannwhitneyu_mx[i, j] = stats.mannwhitneyu(real_mx[i, j, :], mock_mx[i, j, :])
 #         s, kruskal_mx[i, j] = stats.kruskal(real_mx[i, j, :], mock_mx[i, j, :])
-#
-# np.save("ttest_mx5.npy", ttest_mx)
-# np.save("mannwhitneyu_mx5.npy", mannwhitneyu_mx)
-# np.save("kruskal_mx5.npy", kruskal_mx)
+
+# np.save("ttest_mx5_eye.npy", ttest_mx)
+# np.save("mannwhitneyu_mx5_eye.npy", mannwhitneyu_mx)
+# np.save("kruskal_mx5_eye.npy", kruskal_mx)
 
 # print(len(F))
 
-ttest_mx = np.load("ttest_mx5.npy")
-mannwhitneyu_mx = np.load("mannwhitneyu_mx5.npy")
-kruskal_mx = np.load("ttest_mx5.npy")
+ttest_mx = np.load("ttest_mx5_eye.npy")
+mannwhitneyu_mx = np.load("mannwhitneyu_mx5_eye.npy")
+kruskal_mx = np.load("ttest_mx5_eye.npy")
 
-# n = 15
+ttest_mx = np.where(ttest_mx < 0.05, ttest_mx, 1)
+mannwhitneyu_mx = np.where(mannwhitneyu_mx < 0.05, mannwhitneyu_mx, 1)
+kruskal_mx = np.where(kruskal_mx < 0.05, kruskal_mx, 1)
+# n = 15a
 #
 # plt.subplot(1, 3, 1)
 # plt.imshow(ttest_mx[:, :n], aspect='auto', cmap="RdBu_r", vmax=1, vmin=0)
@@ -150,16 +154,22 @@ plt.show()
 colour_map = "RdBu_r"
 m = montage.Montage(channels_in_list)
 
+ttest_mx = kruskal_mx
+
+alpha_mask = (F >= 7.4) & (F <= 9)
+ttest_mx = ttest_mx[:, alpha_mask]
+F = F[alpha_mask]
+
 fig, ax = plt.subplots(nrows=3, ncols=3, figsize=(15, 6))
 counter = 0
 for i in range(3):
     for j in range(3):
-        ax1, _ = mne.viz.plot_topomap(ttest_mx[:, n-counter], m.get_pos(),
+        ax1, _ = mne.viz.plot_topomap(ttest_mx[:, counter], m.get_pos(),
                              names=channels_in_list,
                              show_names=True,
                              axes=ax[i][j], cmap=colour_map,
                              show=False, contours=0, vmin=0, vmax=1)
-        ax[i][j].set_title(str(F[n-counter])+' Hz')
+        ax[i][j].set_title(str(F[counter])+' Hz')
         counter += 1
 # divider = make_axes_locatable(ax[i][j])
 plt.colorbar(ax1)

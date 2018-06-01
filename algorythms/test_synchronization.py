@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy import signal, stats
 import mne
 import h5py
+from sklearn.preprocessing import normalize
 
 from pandas.plotting import scatter_matrix
 
@@ -14,12 +15,11 @@ from graphs.power import welsh_comparison
 from algorythms.test_new import test_new
 from data import montage
 
-
 sub = [
     'df_0_05-09_12-01-47',
     'df_1_05-09_15-44-03',
     'df_2_05-09_19-04-31',
-    # 'df_3_05-10_11-09-55',
+    'df_3_05-10_11-09-55',
     'df_4_05-10_16-12-03',
     'df_5_05-10_18-43-12',
     'df_6_05-11_15-57-07',
@@ -39,6 +39,7 @@ considered_protocols = ['Real', 'Mock']
 real_list = []
 mock_list = []
 
+# for i in range(1):
 for i in range(1):
 
     df, fs, channels = load_data(load_path.format(sub[i]))
@@ -58,17 +59,17 @@ for i in range(1):
     # df2 = df[df['block_name'] == considered_protocols[1]][channels_in_list].T.as_matrix()
 
     # window = signal.get_window(window="hamming", Nx=fs)
-    F, Pxx_1 = signal.welch(x=df1, noverlap=0.5*fs, nfft=5*fs, fs=fs, nperseg=5*fs)
+    # F, Pxx_1 = signal.welch(x=df1, noverlap=0.5*fs, nfft=5*fs, fs=fs, nperseg=5*fs)
     # F, Pxx_2 = signal.welch(x=df2, noverlap=0.5*fs, nfft=5*fs, fs=fs, nperseg=5*fs)
-    # F, Pxx_1 = signal.welch(x=df1, nfft=fs, fs=fs)
+    F, Pxx_1 = signal.welch(x=df1, nfft=fs, fs=fs)
     # F, Pxx_2 = signal.welch(x=df2, nfft=fs, fs=fs)
     # real_list.append(Pxx_1)
     # mock_list.append(Pxx_2)
-
+    #
     # plt.plot(F, Pxx_1.T-Pxx_2.T)
     # plt.show()
-
-    # print(len(real_list))
+    #
+    print(len(real_list))
     # del df, df1, df2, Pxx_1, Pxx_2
 
 m = montage.Montage(channels_in_list)
@@ -79,10 +80,10 @@ m = montage.Montage(channels_in_list)
 # np.save("real_mx.npy", real_mx)
 # np.save("mock_mx.npy", mock_mx)
 
-real_mx = np.load("real_mx.npy")*10e11
-mock_mx = np.load("mock_mx.npy")*10e11
+real_mx = np.load("real_mx_eye.npy")*10e11
+mock_mx = np.load("mock_mx_eye.npy")*10e11
 
-alpha_mask = (F >= 18.4) & (F <= 20)
+alpha_mask = (F >= 7) & (F <= 14)
 beta_mask = (F >= 11) & (F <= 30)
 theta_mask = (F >= 3) & (F <= 7)
 delta_mask = (F >= 0) & (F <= 4)
@@ -159,50 +160,50 @@ for wave in range(len(names)):
                                           cmap=colour_map,
                                           show=False,
                                           contours=0,
-                                          vmin=-1,
-                                          vmax=1)
+                                          vmin=5,
+                                          vmax=-5
+                                          )
             ax[i][j].set_title('Sub {}'.format(counter))
             counter += 1
     plt.colorbar(ax1)
     plt.show()
-#
-# fig, ax = plt.subplots(nrows=4, ncols=1, figsize=(15, 6))
-# counter = 0
-#
-# for i in range(4):
-#         ax1, _ = mne.viz.plot_topomap(ds[:, i],
-#                                       m.get_pos(),
-#                                       names=channels_in_list,
-#                                       show_names=True,
-#                                       axes=ax[i],
-#                                       cmap=colour_map,
-#                                       show=False,
-#                                       contours=0,
-#                                       vmin=-1,
-#                                       vmax=1)
-#         ax[i].set_title(names[i]+' desynchronization coefficient')
-# plt.colorbar(ax1)
-# plt.show()
 
-fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 6), sharey=True)
-axes.boxplot(np.stack([alpha_real.ravel(), alpha_mock.ravel()], axis=1), labels=["Real", "Mock"])
-axes.set_title('Cross-electrode Cross-subject Power Box Plot')
+fig, ax = plt.subplots(nrows=4, ncols=1, figsize=(15, 6))
+counter = 0
+
+for i in range(4):
+        ax1, _ = mne.viz.plot_topomap(ds[:, i],
+                                      m.get_pos(),
+                                      names=channels_in_list,
+                                      show_names=True,
+                                      axes=ax[i],
+                                      cmap=colour_map,
+                                      show=False,
+                                      contours=0,
+                                      vmax=1)
+        ax[i].set_title(names[i]+' desynchronization coefficient')
+plt.colorbar(ax1)
 plt.show()
 
-# fig, ax = plt.subplots(nrows=4, ncols=1, figsize=(15, 6))
-# counter = 0
-#
-# for i in range(4):
-#         ax1, _ = mne.viz.plot_topomap(kruskal_mx[:, i],
-#                                       m.get_pos(),
-#                                       names=channels_in_list,
-#                                       show_names=True,
-#                                       axes=ax[i],
-#                                       cmap=colour_map,
-#                                       show=False,
-#                                       contours=0,
-#                                       vmin=0,
-#                                       vmax=1)
-#         ax[i].set_title(names[i]+' Kruskal–Wallis p-value')
-# plt.colorbar(ax1)
-# plt.show()
+fig, ax = plt.subplots(nrows=4, ncols=1, figsize=(15, 6))
+counter = 0
+
+for i in range(4):
+        ax1, _ = mne.viz.plot_topomap(kruskal_mx[:, i],
+                                      m.get_pos(),
+                                      names=channels_in_list,
+                                      show_names=True,
+                                      axes=ax[i],
+                                      cmap=colour_map,
+                                      show=False,
+                                      contours=0,
+                                      vmin=0,
+                                      vmax=1)
+        ax[i].set_title(names[i]+' Kruskal–Wallis p-value')
+plt.colorbar(ax1)
+plt.show()
+
+fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 6), sharey=True)
+axes.boxplot(np.stack([alpha_real.ravel(), alpha_mock.ravel()], axis=1), labels=considered_protocols)
+axes.set_title('Cross-electrode Cross-subject Power Box Plot')
+plt.show()

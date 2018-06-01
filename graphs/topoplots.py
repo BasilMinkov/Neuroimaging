@@ -2,6 +2,7 @@ import mne
 import numpy as np
 import matplotlib.pyplot as plt
 
+from data import montage
 
 class PlotSignificanceAndTopography:
 
@@ -24,8 +25,8 @@ class PlotSignificanceAndTopography:
         self.ax[0].set_yticks(np.arange(0, frequencies.shape[0]))
         self.ax[0].set_yticklabels(frequencies)
         plt.colorbar(a)
-        mne.viz.plot_topomap(np.zeros(len(self.channels_in_list)), self.coordinates[:, [1, 0]],
-                             names=self.channels_in_list,
+        mne.viz.plot_topomap(np.zeros(len(self.channels_in_list)), m.get_pos(),
+                             names=m.get_names(),
                              show_names=True,
                              axes=self.ax[1], cmap=self.colour_map,
                              show=False, contours=0)
@@ -39,8 +40,8 @@ class PlotSignificanceAndTopography:
         #     event.xdata = (len(channels_in_list) - 1) + (event.xdata - 1)
         #     print(event.xdata)
         self.ax[1].cla()
-        mne.viz.plot_topomap(self.vectors_list[int(event.ydata), :, int(event.xdata)], self.coordinates[:, [1, 0]],
-                             names=self.channels_in_list, show_names=True, axes=self.ax[1], cmap=self.colour_map,
+        mne.viz.plot_topomap(self.vectors_list[int(event.ydata), :, int(event.xdata)], m.get_pos(),
+                             names=m.get_names(), show_names=True, axes=self.ax[1], cmap=self.colour_map,
                              show=False, contours=0)
         # plt.colorbar(self.ax[1])
         self.ax[1].set_title("Frequency {} Hz; Component {}; Eig {}".format(
@@ -99,9 +100,9 @@ if __name__ == "__main__":
 
     print(p_value_rightsided)
 
-
+    m = montage.Montage(channels_in_list)
 
     p_value_rightsided[(p_value_rightsided > 0.05) & (p_value_rightsided < 0.95)] = 0.5
     # p_value_leftsided[p_value_leftsided > 0.05] = 1
 
-    plot = PlotSignificanceAndTopography(p_value_rightsided, vectors_list, values_list, frequencies, channels_in_list, ch2)
+    plot = PlotSignificanceAndTopography(p_value_rightsided, vectors_list, values_list, frequencies, m, ch2)
