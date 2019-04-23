@@ -20,7 +20,10 @@ def highlight_local_max(x):
     plt.plot(x["Trace #1"])
     plt.show()
 
-def find_spikes(x, peaks):
+def find_spikes(x, peaks, diff, window):
+    
+    diff = diff or 1
+    window = window or 6
 
     enter = []
     exit = []
@@ -30,12 +33,12 @@ def find_spikes(x, peaks):
 
     for peak in peaks:
         en_b, ex_b = peak, peak
-        while x["Trace #1"][en_b-6:en_b].diff().abs().mean() > 1:
+        while x["Trace #1"][en_b-window:en_b].diff().abs().mean() > diff:
             en_b -= 1
-        while x["Trace #1"][ex_b:ex_b+6].diff().abs().mean() > 1:
+        while x["Trace #1"][ex_b:ex_b+window].diff().abs().mean() > diff:
             ex_b += 1
-        enter.append(en_b)
-        exit.append(ex_b)
+        enter.append(en_b-round(window/2))
+        exit.append(ex_b+round(window/2))
 
     return np.array(enter), np.array(exit)
 
@@ -63,10 +66,13 @@ def find_spikes_poor_version(x, peaks):
                 
     return np.array(enter), np.array(exit)
 
-def highlight_peaks(x, peaks):
-    plt.plot(x["Trace #1"])
-    plt.plot(peaks, x["Trace #1"][peaks], "x")
-    plt.plot(np.zeros_like(x["Trace #1"]), "--", color="gray")
+def highlight_spikes(x, enter, exit, limit=None):
+    for i, _ in enumerate(enter):
+        plt.axvline(x=enter[i], color="red")
+        plt.axvline(x=exit[i], color="red")    
+    x["Trace #1"].plot()
+    if limit != None:
+        plt.xlim(limit)
     plt.show()
 
 def highlight_spikes(x, enter, exit):
@@ -111,3 +117,39 @@ def spike_stats(x, enter, peaks, exit):
         amplitude_changes, 
         spike_powers
     )
+
+if __name__ == "__main__":
+
+    pylab.rcParams['figure.figsize'] = (22, 18)
+    sns.set(font_scale=3)
+
+    state = 1
+    cell = 1
+
+    path = "/Users/wassilyminkow/Data/Cell_Data/SpikingCellsInH2O2/"
+    files = "19219002_reduced_10_V3_RCGC.xlsx"
+
+    data = pd.DataFrame({"Time (ms)":[], "Trace #1":[], "State":[], "Cell":[]})
+
+    temp = pd.read_excel(io=path+file, sheet_name="Лист{}".format(j), parse_cols=[0,1])
+    temp["Cell"] = cell
+    temp["State"] = state
+    data = pd.concat([data, temp])
+
+    keys = ["Spike Length", "Depolarisation Length", "Repolarization Lengths", "Amplitude Changes", "Spike Power", "Peak Time", "Cell", "State"]
+    stats = dict.fromkeys(keys, [])
+    stats = pd.DataFrame(stats)
+
+    # Print state to be analysed
+    print("Cell {} In State {}".format(cell, state), end="\n\n")
+    
+    # Calculate properites
+    x = data[(data["Cell"] == cell) & (data["State"] == state)]
+    peaks, _ = find_peaks(x["Trace #1"], height=0)
+    enter, exit = find_spikes(x, peaks, 1, 6)
+    highlight_spikes(x, enter, exit, [350, 700])
+    stat = dict(zip(keys[:-2], spike_stats(x, enter, peaks, exit)))
+    stat["Peak Time"] = x["Time (ms)"][peaks].values
+    stat["Cell"] = cell
+    stat["State"] = state
+    stats = pd.concat([stats, pd.DataFrame(stat)])
