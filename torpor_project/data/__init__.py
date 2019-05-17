@@ -1,8 +1,6 @@
-import pands as pd
-
 SEC_PER_MIN = 60
 
-def skip_damaged_epoch(start_time):
+def count_damaged_samples(start_time, fs, new_ones=0):
     '''We can't travel distance in vehicles without fuels, so here is the fuels
 
     Parameters
@@ -10,6 +8,7 @@ def skip_damaged_epoch(start_time):
     start_time : list
         A list made from struct_time, the type of the time value sequence returned by gmtime(), localtime(), and strptime(). 
         It is an object with a named tuple interface: values can be accessed by index and by attribute name.
+        start_time[0, 1, 2, 3, 4, 5] = [Year, Month, Day, Hour, Minute, Seconds]
 
     Raises
     ------
@@ -27,7 +26,7 @@ def skip_damaged_epoch(start_time):
     # skip seconds
     
     if start_time[5] > 0:
-        n_skip += (60-start_time[5])*fs
+        n_skip += (SEC_PER_MIN-start_time[5])*fs
         
         start_time[5] = 0
         start_time[4] += 1
@@ -44,23 +43,17 @@ def skip_damaged_epoch(start_time):
         tens = 0
     
     if ones > 0:
-        n_skip += (10-ones)*fs*60
+        n_skip += (10-ones)*fs*SEC_PER_MIN
         
         if tens == 5:
             start_time[4] = 0
             start_time[3] += 1
         else:
             start_time[4] += (10-ones) #TODO 
-    
-    return n_skip
 
-def normalize(df):
-    '''Normalizes dataset. 
+    # TODO Perharps this part should be modified somehow. 
+    if new_ones > 0: 
+        start_time[4] += new_ones
+        n_skip += new_ones*SEC_PER_MIN*fs
 
-    Parameters
-    ----------
-    df : pandas Data Frame
-
-
-    '''
-    return (df - df.mean()) / df.std()
+    return n_skip, start_time
