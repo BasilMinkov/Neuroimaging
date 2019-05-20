@@ -35,3 +35,4 @@ def normalize(df):
     '''
     return (df - df.mean()) / df.std()
 
+
