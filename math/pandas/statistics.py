@@ -1,4 +1,8 @@
+import numpy as np
 import pandas as pd
+from scipy.stats.stats import spearmanr
+from statsmodels.sandbox.stats.multicomp import multipletests
+
 
 def standardize(df):
     '''
@@ -15,6 +19,7 @@ def standardize(df):
 	
     '''
     return (df - df.mean()) / df.std()
+
 
 def normalize(df):
     '''
@@ -34,6 +39,7 @@ def normalize(df):
 
     '''
     return (df - df.mean()) / df.std()
+
 
 def rmse(df_1, df_2):
 	'''
@@ -67,4 +73,71 @@ def rmse(df_1, df_2):
 	'''
 
 	return ((df_1 - df_2)**2).mean()**0.5
+
+def moving_correlation(time_array, x, y, gap, correlation="absolute"):
+
+    # set size of the rolling window 
+    p = np.zeros(x.shape[0]-gap) # p-value vector
+    c = np.zeros(x.shape[0]-gap) # statistic vector
+
+    # calculate the rolling corelation coefficient
+    for i in np.arange(x.shape[0]-gap):
+        ans = spearmanr(x[i:i+gap], y[i:i+gap])
+        c[i] = ans[0] 
+        p[i] = ans[1]
+
+    # adjust p-values with bonferroni correction
+    p_adjusted = multipletests(p, method='bonferroni')[1]
+
+    # preper arrays to store info about significance (1 - significant, 0 - non-significant)
+    c1 = np.zeros(x.shape[0]-gap)
+    c2 = np.zeros(x.shape[0]-gap)
+    c3 = np.zeros(x.shape[0]-gap)
+    
+    # 
+    c_green = np.zeros(x.shape[0]-gap)
+    c_yellow = np.zeros(x.shape[0]-gap)
+    c_red = np.zeros(x.shape[0]-gap)
+
+    # choose correlation peaking type
+    if correlation == "absolute":
+    	corr = lambda x : np.abs(x)
+    elif correlation == "positive":
+    	corr = lambda x: x
+    elif correlation == "negative":
+    	corr = lambda x: -x
+
+    # write info about significance
+    p_threshold = 1e-6
+    c1[(p_adjusted < p_threshold) & (corr(c) >= 0.95)] = 1
+    c2[(p_adjusted < p_threshold) & (corr(c) >= 0.9 ) & (corr(c) < 0.95)] = 1
+    c3[(p_adjusted < p_threshold) & (corr(c) >= 0.85) & (corr(c) < 0.9 )] = 1
+    c1[c1 < 1] = 0
+    c2[c2 < 1] = 0
+    c3[c3 < 1] = 0
+    
+    num = [c1, c2, c3]
+    col = [c_green, c_yellow, c_red]
+
+    z = list(zip(num, col))
+
+    counter = 0
+
+    for unit in z:
+        for i in range(len(unit[0])):
+            if unit[0][i] == 0:
+                if counter == 0:
+                    unit[1][i] = np.nan
+                else:
+                    unit[1][i] = time_array[i]
+                    counter -= 1
+            else:
+                unit[1][i] = time_array[i]
+                counter = gap
+    
+    z[2][1][z[0][1] == z[2][1]] = np.nan
+    z[2][1][z[1][1] == z[2][1]] = np.nan
+    z[1][1][z[0][1] == z[1][1]] = np.nan
+
+    return z
 
