@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from scipy.stats.stats import spearmanr
+from scipy.stats.stats import pearsonr, spearmanr
 from statsmodels.sandbox.stats.multicomp import multipletests
 
 
@@ -11,7 +11,7 @@ def standardize(df):
 	
 	Equation
 	--------
-    $x_{changed} = \\frac{x - x_{min}}{x_{max} - x_{min}}$
+    $x_{changed} = \\frac{x - \\mu}{\\sigma}$
 
     Parameters
     ----------
@@ -30,7 +30,7 @@ def normalize(df):
 
 	Equation
 	--------
-	$x_{changed} = \\frac{x - \\mu}{\\sigma}$
+    $x_{changed} = \\frac{x - x_{min}}{x_{max} - x_{min}}$
 
     Parameters
     ----------
@@ -38,7 +38,7 @@ def normalize(df):
 
 
     '''
-    return (df - df.mean()) / df.std()
+    return (df - df.min()) / (df.max() - df.min())
 
 
 def rmse(df_1, df_2):
@@ -74,7 +74,7 @@ def rmse(df_1, df_2):
 
 	return ((df_1 - df_2)**2).mean()**0.5
 
-def moving_correlation(time_array, x, y, gap, correlation="absolute"):
+def moving_correlation(time_array, x, y, gap, correlation="positive"):
 
     # set size of the rolling window 
     p = np.zeros(x.shape[0]-gap) # p-value vector
@@ -108,10 +108,10 @@ def moving_correlation(time_array, x, y, gap, correlation="absolute"):
     	corr = lambda x: -x
 
     # write info about significance
-    p_threshold = 1e-6
-    c1[(p_adjusted < p_threshold) & (corr(c) >= 0.95)] = 1
-    c2[(p_adjusted < p_threshold) & (corr(c) >= 0.9 ) & (corr(c) < 0.95)] = 1
-    c3[(p_adjusted < p_threshold) & (corr(c) >= 0.85) & (corr(c) < 0.9 )] = 1
+    p_threshold = 5e-07 
+    c1[(p_adjusted < p_threshold) & (corr(c) >= 0.8)] = 1
+    c2[(p_adjusted < p_threshold) & (corr(c) >= 0.6) & (corr(c) < 0.8)] = 1
+    c3[(p_adjusted < p_threshold) & (corr(c) >= 0.4) & (corr(c) < 0.6)] = 1
     c1[c1 < 1] = 0
     c2[c2 < 1] = 0
     c3[c3 < 1] = 0
